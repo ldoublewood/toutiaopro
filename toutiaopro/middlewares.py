@@ -10,6 +10,7 @@ from itemadapter import is_item, ItemAdapter
 from scrapy.http import HtmlResponse
 from time import sleep
 import random
+import logging
 
 class ToutiaoproDownloaderMiddleware:
 
@@ -34,14 +35,16 @@ class ToutiaoproDownloaderMiddleware:
             sleep(2)
             page_text = bro2.page_source
             new_response = HtmlResponse(url=request.url, body=page_text, encoding='utf-8', request=request)
+            print (new_response)
             return new_response
         else:
             bro1.get(request.url)
-            sleep(2)
+            sleep(5)
             page_text = bro1.page_source
+#            logging.log(logging.WARNING, bro2.page_source)
 
             response = HtmlResponse(url=request.url, body=page_text, encoding='utf-8', request=request)
-
+            print (response)
             return response
 
     def process_exception(self, request, exception, spider):

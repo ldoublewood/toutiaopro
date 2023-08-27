@@ -1,14 +1,18 @@
 import scrapy
 from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
 from toutiaopro.items import ToutiaoproItem
 from time import sleep
 from scrapy.http import HtmlResponse
-
+import logging
 class ToutiaoSpider(scrapy.Spider):
     name = 'toutiao'
-    data = input("请输入要爬取的关键字:")
-    number = int(input("请输入要爬取的数量:"))  # 控制爬取数量
-    address = 'https://www.toutiao.com/search/?keyword='+data
+    #data = input("请输入要爬取的关键字:")
+    #number = int(input("请输入要爬取的数量:"))  # 控制爬取数量
+    number = 4
+    #address = 'https://www.toutiao.com/search/?keyword='+data
+    address = 'https://www.toutiao.com/c/user/token/MS4wLjABAAAAAGsDYNOXFdmGdHtu3iD0wyiybaPhzDbyIfpAC-nFb4w'
     start_urls = [address]
     urls = []
     num = 0 #控制浏览器下滑循环次数
@@ -17,35 +21,25 @@ class ToutiaoSpider(scrapy.Spider):
 
     #初始化浏览器
     def __init__(self):
+        CHROMEDRIVER_PATH = '/usr/bin/chromedriver'
+        WINDOW_SIZE = "1920,1080"
+        service = Service(executable_path=CHROMEDRIVER_PATH)
         #根据自己的chrome驱动路径设置
-        path = r'H:\PythonCode\Spider\scrapy\wangyi\wangyi\spiders\chromedriver.exe'
-        self.bro1 = webdriver.Chrome(executable_path=path)
-        self.bro2 = webdriver.Chrome(executable_path=path)
+        chrome_options = Options()
+        chrome_options = webdriver.ChromeOptions()
+#        chrome_options.add_argument("--headless")
+        chrome_options.add_argument("--window-size=%s" % WINDOW_SIZE)
+        chrome_options.add_argument('--no-sandbox')
+
+        self.bro1 = webdriver.Chrome(service=service, options=chrome_options)
+        self.bro2 = webdriver.Chrome(service=service, options=chrome_options)
 
 
     #获取到关键字的文章列表
     def parse(self, response):
-        #获取到列表属性
-        div_list = response.xpath('/html/body/div/div[4]/div[2]/div[3]/div/div/div')
 
-        ########
-        #获取每篇文章
-        # for div in div_list:
-        #     url_temp = div.xpath('./div/div/div/div/div//@href').extract_first()
-        #     url = 'https://www.toutiao.com/a'+url_temp.split('/',3)[2]
-        #     self.urls.append(url)
-        # for href in self.urls:
-        #     yield scrapy.Request(href,callback=self.parse_model)
-        ##############
+        self.artical_list(response)
 
-        for div in div_list:
-            url_temp = div.xpath('./div/div/div/div/div//@href').extract_first()
-            #链接拼接
-            url = 'https://www.toutiao.com/a'+url_temp.split('/',3)[2]
-            self.urls.append(url)
-            print("--------")
-            print(url)
-            print("---------")
 
         #控制爬取数量
         while self.index<=self.number:
@@ -96,19 +90,28 @@ class ToutiaoSpider(scrapy.Spider):
         item['content'] = content
         item['time'] = time
         item['author'] = author
-
+        logging.log(logging.WARNING, item)
         yield item
 
     #列表解析
-    def artical_list(self,new_response):
+    def artical_list(self, response):
         # 获取到列表属性
-        div_list = new_response.xpath('/html/body/div/div[4]/div[2]/div[3]/div/div/div')
-        num_urls = len(self.urls)
-        num_div = len(div_list)
-        for div in range(num_urls,num_div):
-            href_temp = div_list[div].xpath('./div/div/div/div/div//@href').extract_first()
-            href_temp = 'https://www.toutiao.com/a'+href_temp.split('/',3)[2]
-            self.urls.append(href_temp)
-            print("!!!!!!!!!!!!!")
-            print(href_temp)
-            print("!!!!!!!!!!!!")
+        div_list = response.xpath('/html/body/div[1]/div/div[3]/div[1]/div/div[2]/div/div/div')
+        for div in div_list:
+            urls_temp = div.xpath('./div/div/div[2]//a/@href').extract()
+            url = list(filter(lambda x: x.startswith("https://www.toutiao.com"), urls_temp))[0]
+            self.urls.append(url)
+            logging.log(logging.WARNING,  "appending full url is:" + url)
+
+        #div_list = new_response.xpath('/html/body/div[1]/div/div[3]/div[1]/div/div[2]/div/div/div')
+        #num_urls = len(self.urls)
+        #num_div = len(div_list)
+        #for div in range(num_urls,num_div):
+        #    href_temp = div_list[div].xpath('./div/div/div/div/div//@href').extract_first()
+        #    href_temp = 'https://www.toutiao.com/a'+href_temp.split('/',3)[2]
+        #    self.urls.append(href_temp)
+        #    print("!!!!!!!!!!!!!")
+        #    print(href_temp)
+        #    print("!!!!!!!!!!!!")
+
+
